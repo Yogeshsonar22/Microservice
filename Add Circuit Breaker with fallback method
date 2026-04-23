@@ -26,7 +26,7 @@ implements UserService {
         return dto;
     }
 
-//fallback mthod Exception + Dummydata if service is Down
+---> //fallback mthod = return Exception + Dummydata if service is Down
     public UserDto getByUserIdFallback(Integer userId, Exception ex) {
 
         User user = userrepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException( "user", "id", userId));
