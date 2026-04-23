@@ -1,0 +1,44 @@
+USERservice communicating with HotelService
+1) Add dependency on OpenFeign + EurekaClient in USERSERVICE
+
+2) Enable OpenFeign+ EurekaClient in USERSERVICE
+@SpringBootApplication
+=>   @EnableDiscoveyClient
+=>   @EnableFeignClients
+public class UserApplication {
+P S V main(run())           }
+-------------------------------------------------------------------
+3) Create Hotel DTO in USER-SERVICE
+@Data
+public class Hotel {
+
+    private String id;
+    private String name;
+    private String location;
+}
+------------------------------------------------------------------
+4) mention HotelDto into UserDTO
+
+@Data
+public class UserDTO {
+
+    private String id;
+    private String name;
+    private String hotelId;
+
+    private HotelDTO hotel;
+}
+
+✅ No @Transient needed because DTO is not entity.
+-------------------------------------------------------------
+
+5) create HotelSeviceclient to call hotelservice from userService 
+Feign Client
+@FeignClient(name = "HOTEL-SERVICE")
+public interface HotelServiceClient {
+
+    @GetMapping("/hotels/{hotelId}")
+    HotelDTO getHotel(@PathVariable String hotelId);
+}
+
+
