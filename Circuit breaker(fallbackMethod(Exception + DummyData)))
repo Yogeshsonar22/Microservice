@@ -1,0 +1,46 @@
+
+@Service
+public class UserServiceImpl
+implements UserService {
+
+    @Autowired
+    private UserRepository userrepo;
+
+    @Autowired
+    private ModelMapper mapper;
+
+    @Autowired
+    private HotelFeignClient client;
+
+    @Override
+=>  @CircuitBreaker(name = "hotelService", fallbackMethod = "getByUserIdFallback")
+    public UserDto getByUserId(Integer userId) {
+
+        User user = userrepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user", "id", userId));
+
+        UserDto dto =mapper.map(user, UserDto.class);
+
+        HotelDto hotel = client.getHotel("H101");
+
+        dto.setHotel(hotel);
+        return dto;
+    }
+
+//fallback mthod Exception + Dummydata if service is Down
+    public UserDto getByUserIdFallback(Integer userId, Exception ex) {
+
+        User user = userrepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException( "user", "id", userId));
+
+        UserDto dto = mapper.map(user, UserDto.class);
+
+        HotelDto hotel = new HotelDto();    
+        hotel.setId("0");
+        hotel.setName("Default Hotel");
+        hotel.setLocation("Service Down");
+
+        dto.setHotel(hotel);
+
+        return dto;
+    }
+}
+
