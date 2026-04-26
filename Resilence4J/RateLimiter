@@ -1,1 +1,61 @@
+Same code as CB or Rety, just new here, Dependancy and  @RateLimiter  Annotation added in ServiceIMPL
+@Service
+public class UserServiceImpl implements UserService {
 
+    @Autowired
+    private UserRepository repo;
+
+    @Autowired
+    private ModelMapper mapper;
+
+    @Autowired
+    private HotelFeignClient client;
+
+    @Override
+    @RateLimiter( name = "hotelService",  fallbackMethod = "getUserFallback" )
+    public UserDto getUser(Integer userId) {
+
+        User user = repo.findById(userId)   .orElseThrow(() ->   new RuntimeException("User Not Found"));
+
+        UserDto dto = mapper.map(user, UserDto.class);
+
+        HotelDto hotel =   client.getHotel(user.getHotelId());
+
+        dto.setHotel(hotel);
+        return dto;
+    }
+
+    public UserDto getUserFallback(
+            Integer userId,
+            Exception ex) {
+
+        User user = repo.findById(userId) .orElseThrow(() -> new RuntimeException("User Not Found"));
+
+        UserDto dto = mapper.map(user, UserDto.class);
+
+        HotelDto hotel = new HotelDto();
+        hotel.setId(user.getHotelId());
+        hotel.setName("Blocked / Default Hotel");
+        hotel.setLocation("Too Many Requests");
+
+        dto.setHotel(hotel);
+
+        return dto;
+    }
+}
+=====================================================
+✅ 5️⃣ application.yml Changes
+=====================================================
+resilience4j:
+  ratelimiter:
+    instances:
+      hotelService:
+        limit-for-period: 5
+        limit-refresh-period: 10s
+        timeout-duration: 0
+=====================================================
+✅ Meaning
+=====================================================
+5 requests allowed every 10 sec
+6th request immediately blocked
+fallback method called
