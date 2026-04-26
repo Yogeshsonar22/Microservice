@@ -1,0 +1,184 @@
+Full code 
+1️⃣ User Entity: Option is already defined in User
+@Entity  @Data @AllArgsConstructor  @NoArgsConstructor
+public class User {
+
+    @Id
+      private Integer id;
+      private String name;
+=>     private String hotelId;
+}
+
+2️⃣ User Repository:  Option is already defined in User
+public interface UserRepository extends JpaRepository<User,Integer> {
+}
+------------------------------------------------------------------------------
+3️⃣ User DTO
+@Data
+public class UserDto {
+
+    private Integer id;
+    private String name;
+=>  private String hotelId;
+=>   private HotelDto hotel;
+}
+-------------------------------------------------
+4️⃣ Hotel DTO
+@Data
+public class HotelDto {
+
+    private String id;
+    private String name;
+    private String location;
+}
+--------------------------------------------------
+5️⃣ ModelMapper Config: Optional defined in Main
+@Configuration
+public class MyConfig {
+
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
+    }
+}
+----------------------------------------------------------------
+6️⃣ Feign Client
+@FeignClient(name = "HOTEL-SERVICE")
+public interface HotelFeignClient {
+
+    @GetMapping("/hotels/{hotelId}")
+    HotelDto getHotel(@PathVariable String hotelId);
+}
+--------------------------------------------------------------------
+7️⃣ User Service Interface: already created in User-service
+public interface UserService {
+
+    UserDto getUser(Integer userId);
+}
+------------------------------------------------------------------------
+8️⃣ User Service Impl with Circuit Breaker
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserRepository repo;
+
+    @Autowired
+    private ModelMapper mapper;
+
+    @Autowired
+    private HotelFeignClient client;
+
+    @Override
+    @CircuitBreaker( name = "hotelService",  fallbackMethod = "getUserFallback" )
+    public UserDto getUser(Integer userId) {
+
+        User user = repo.findById(userId).orElseThrow(() ->  new RuntimeException("User Not Found"));
+
+        UserDto dto = mapper.map(user, UserDto.class);
+
+        // communication to Hotel Service
+        HotelDto hotel = client.getHotel(user.getHotelId());
+
+        dto.setHotel(hotel);
+        return dto;
+    }
+
+    // fallback method
+    public UserDto getUserFallback( Integer userId, Exception ex) {
+
+        User user = repo.findById(userId) .orElseThrow(() ->  new RuntimeException("User Not Found"));
+
+        UserDto dto = mapper.map(user, UserDto.class);
+
+        HotelDto hotel = new HotelDto();
+
+        hotel.setId(user.getHotelId());
+        hotel.setName("Default Hotel");
+        hotel.setLocation("Service Down");
+
+        dto.setHotel(hotel);
+        return dto;
+    }
+}
+----------------------------------------------------------------
+9️⃣ User Controller: option Already defined in UserController
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @Autowired
+    private UserService service;
+
+    @GetMapping("/{userId}")
+    public UserDto getUser(
+            @PathVariable Integer userId) {
+
+        return service.getUser(userId);
+    }
+}
+=====================================================
+🔥 application.yml -USER-SERVICE
+=====================================================
+server:
+  port: 8081
+
+spring:
+  application:
+    name: USER-SERVICE
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+=====================================================
+🔥 application.yml - Hotel-SERVICE
+=====================================================
+server:
+  port: 8082
+
+spring:
+  application:
+    name: HOTEL-SERVICE
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+=====================================================
+🔥 Required Dependency
+=====================================================
+=> spring-cloud-starter-openfeign
+=> spring-cloud-starter-circuitbreaker-resilience4j
+modelmapper
+spring-boot-starter-data-jpa
+mysql-driver
+=> eureka-client
+=====================================================
+🔥 Main Class
+=====================================================
+@SpringBootApplication
+=> @EnableFeignClients
+public class UserServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(
+            UserServiceApplication.class,args);
+    }
+}
+
+In latest Spring Boot, @EnableDiscoveryClient optional.
+=> Eureka client auto enabled.
+=====================================================
+🔥 Output if Hotel Service Running
+=====================================================
+{
+  "id":1,
+  "name":"Yogesh",
+  "hotelId":"H101",
+  "hotel":{
+      "id":"H101",
+      "name":"Taj Hotel",
+      "location":"Mumbai"
+  }
+}
