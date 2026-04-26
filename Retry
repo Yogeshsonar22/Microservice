@@ -1,1 +1,24 @@
+=> Same code as Circuit breaker, add the dependency of retry in the code, and add @Retry line 
 
+@Retry( name = "hotelService",  fallbackMethod = "getUserFallback" )
+
+public UserDto getUser(Integer userId) {
+
+    User user = repo.findById(userId).orElseThrow(() ->  new RuntimeException("User Not Found"));
+
+    UserDto dto = mapper.map(user, UserDto.class);
+
+    HotelDto hotel =   client.getHotel(user.getHotelId());
+
+    dto.setHotel(hotel);
+
+    return dto;
+}
+=====================================================
+✅ Can You Skip CircuitBreaker?
+=====================================================
+
+✔ Yes technically
+✔ Works fine for small projects/learning
+
+=> ❌ In real production, better use both.
