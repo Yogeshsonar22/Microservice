@@ -78,7 +78,7 @@ public class UserServiceImpl implements UserService {
         UserDto dto = mapper.map(user, UserDto.class);
 
         // communication to Hotel Service
-        HotelDto hotel = client.getHotel(user.getHotelId());
+    =>     HotelDto hotel = client.getHotel(user.getHotelId());
 
         dto.setHotel(hotel);
         return dto;
@@ -91,7 +91,7 @@ public class UserServiceImpl implements UserService {
 
         UserDto dto = mapper.map(user, UserDto.class);
 
-        HotelDto hotel = new HotelDto();
+      =>   HotelDto hotel = new HotelDto();   //adding in response so Dto HotelDto needed
 
         hotel.setId(user.getHotelId());
         hotel.setName("Default Hotel");
